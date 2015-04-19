@@ -133,6 +133,9 @@ function draw() {
 	}
 
     ctx.drawImage(playerImage, x, y);
+    ctx.fillStyle = "#ff0000";
+    ctx.fillRect(x+TILESIZE/2 + aimDirection * Math.cos(aimAngle)*32, y+TILESIZE/2 + Math.sin(aimAngle)*32, 4,4);
+
     ctx.fillStyle = "#7f7fff";
 
     if(waterLevel > 4) {
@@ -141,7 +144,8 @@ function draw() {
     ctx.fillRect(640-32-8,12, waterLevel, 8);
 
     ctx.drawImage(bottleImage, 640-32-8, 8);
-    ctx.fillRect(x+TILESIZE/2 + aimDirection * Math.cos(aimAngle)*32, y+TILESIZE/2 + Math.sin(aimAngle)*32, 4,4);
+
+
     for(i=0;i<waterParticles.length;i++) {
 	ctx.fillRect(waterParticles[i][0], waterParticles[i][1], 4,4);
     }
@@ -180,7 +184,9 @@ function waterLand(gx,gy) {
     if(currentLevel.water[gx][gy] >= 16) {
 	currentLevel.map[gx][gy] = 1;
     }
-    drips.push([gx*TILESIZE+TILESIZE/2, gy*TILESIZE+TILESIZE/2, 0, -8]);
+    if(Math.random() < 0.5) {
+	drips.push([gx*TILESIZE+Math.random()*TILESIZE, gy*TILESIZE+Math.random()*TILESIZE, 0, -8]);
+    }
 }
 
 function evaporate(step)
