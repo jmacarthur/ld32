@@ -75,7 +75,7 @@ function resetGame()
 function init()
 {
     mode = MODE_TITLE;
-    playerImage = getImage("player");
+    playerImage = getImage("person");
     springSound = new Audio("audio/boing.wav");
     makeTitleBitmaps();
     return true;
