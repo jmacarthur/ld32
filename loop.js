@@ -7,7 +7,21 @@ var SCREENHEIGHT = 480;
 var MODE_TITLE = 0;
 var MODE_PLAY  = 1;
 var MODE_WIN   = 2;
+var TILESIZE = 16;
+var levels = new Array(16);
 
+currentLevel = levels[0];
+
+map = [[]];
+for(x=0;x<(0,640/16);x++) {
+    map[x] = new Array(480/16);
+}
+map[1][1] = 1;
+for(x=0;x<5;x++) {
+    map[x+10][10] = 1;
+    map[x+3][13] = 1;
+    map[x*2][20] = 1;
+}
 function getImage(name)
 {
     image = new Image();
@@ -76,6 +90,17 @@ function draw() {
 	return;
     }
 
+    // Draw tiles
+    ctx.fillStyle = "#ffffff";
+
+   for(cx=0;cx<640/TILESIZE;cx++) {
+	for(cy=0;cy<480/TILESIZE;cy++) {
+	    if(map[cx][cy] == 1) {
+		ctx.fillRect(cx*TILESIZE, cy*TILESIZE, TILESIZE, TILESIZE);
+		}
+	    }
+	}
+
     ctx.drawImage(playerImage, x, y);
 
     if(mode == MODE_WIN) {
@@ -110,6 +135,7 @@ if (canvas.getContext('2d')) {
         keysDown[c] = 1;
 	if(c == 81) {
 	    stopRunloop=true;
+	    console.log("Loop exited");
 	}
 	if(c == 32) {
 	    if(mode == MODE_TITLE) {
