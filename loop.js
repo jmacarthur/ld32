@@ -47,6 +47,13 @@ function Level()
     this.robots.push(new Robot(32,128))
 }
 
+function Particle(x,y,xvel,yvel)
+{
+    this.x = x; this.y = y;
+    this.xvel = xvel; this.yvel = yvel;
+    this.colour = "#7f0000";
+}
+
 function fakeLevel()
 {
     var x;
@@ -125,6 +132,7 @@ function resetGame()
     fakeLevel();
     waterLevel = 128;
     flash = "";
+    particles = [];
 }
 
 
@@ -197,6 +205,12 @@ function draw() {
 	ctx.fillRect(r.x, r.y, r.xsize,r.ysize);
     }
 
+    for(i=0;i<particles.length;i++) {
+	console.log("Draw particle at "+p.x+","+p.y);
+	p = particles[i];
+	ctx.fillStyle = p.colour;
+	ctx.fillRect(p.x, p.y, 4, 4);
+    }
 
     if(mode == MODE_WIN) {
 	ctx.drawImage(winBitmap, 0, 0);
@@ -333,6 +347,11 @@ function action()
 	if(r.health > 0) {
 	    newRobots.push(r);
 	}
+	else {
+	    for(j=0;j<10;j++) {
+		particles.push(new Particle(r.x + r.xsize/2, r.y+r.ysize/2, 8*Math.random()-4, -Math.random()*4));
+	    }
+	}
 	if(hitRobot(px,py) > -1) {
 	    flash = "#ff0000";
 	    resetPlayer();
@@ -340,6 +359,17 @@ function action()
     }
     currentLevel.robots = newRobots;
 
+    newParticles = new Array();
+    for(i=0;i<particles.length;i++) {
+	p = particles[i];
+	p.x += p.xvel;
+	p.y += p.yvel;
+	p.yvel += 1;
+	if(p.y <= 480) {
+	    newParticles.push(p);
+	}
+    }
+    particles = newParticles;
 }
 
 
