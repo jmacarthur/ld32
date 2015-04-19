@@ -82,7 +82,12 @@ function Particle(x,y,xvel,yvel)
 {
     this.x = x; this.y = y;
     this.xvel = xvel; this.yvel = yvel;
-    this.colour = "#7f0000";
+    red = Math.floor((Math.random()*255)).toString(16);
+    if(red.length == 1) red = "0"+red;
+    green = Math.floor((Math.random()*255)).toString(16);
+    if(green.length == 1) green = "0"+green;
+    this.colour = "#"+red+green+"00";
+    console.log("Assigned particle colour: "+this.colour);
 }
 
 function getImage(name)
