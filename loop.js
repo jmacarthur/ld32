@@ -108,9 +108,32 @@ function draw() {
     }
 }
 
+
+function fall()
+{
+    x1 = Math.floor(x/TILESIZE);
+    x2 = Math.floor((x+TILESIZE-1)/TILESIZE);
+    gridy = Math.floor(y/TILESIZE)+1;
+    if(y % TILESIZE == 0) {
+	
+	ground1 = map[x1][gridy]
+	ground2 = map[x2][gridy]
+	if(ground1 == 1 || ground2 == 1) {
+	    grounded = true;
+	    return;
+	}
+    }
+
+    grounded = false;
+    y += 1;
+}
+
+function action()
+{
+    fall();
+}
+
 function processKeys() {
-    if(keysDown[40] || keysDown[83]) y += 4;
-    if(keysDown[38] || keysDown[87]) y -= 4;
     if(keysDown[37] || keysDown[65]) x -= 4;
     if(keysDown[39] || keysDown[68]) x += 4;
     if(x < 0) x = 0;
@@ -122,6 +145,7 @@ function processKeys() {
 function drawRepeat() {
     if(mode != MODE_TITLE) {
 	processKeys();
+	action();
     }
     draw();
     if(!stopRunloop) setTimeout('drawRepeat()',20);
