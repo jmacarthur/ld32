@@ -188,7 +188,8 @@ function draw() {
     ctx.translate(px+TILESIZE/2,py+TILESIZE);
     ctx.rotate(aimAngle*aimDirection);
     ctx.scale(0.7*aimDirection,0.7);
-    ctx.drawImage(gunImage, -32,-10);
+    ctx.translate(0,0);
+    ctx.drawImage(gunImage, 0, -16);
     ctx.restore();
 
     ctx.fillStyle = "#7f7fff";
@@ -426,7 +427,7 @@ function addWater()
 {
     if(waterLevel > 0) {
 	rangle = aimAngle + 0.1*(-0.5 + Math.random());
-	waterParticles.push([px+TILESIZE/2, py+TILESIZE, aimDirection * Math.cos(rangle) * PRESSURE, Math.sin(rangle) * PRESSURE]);
+	waterParticles.push([px+TILESIZE/2, py+TILESIZE-8, aimDirection * Math.cos(rangle) * PRESSURE, Math.sin(rangle) * PRESSURE]);
 	waterLevel -= 1;
     }
 }
