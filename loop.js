@@ -19,9 +19,14 @@ for(x=0;x<(0,640/16);x++) {
 map[1][1] = 1;
 for(x=0;x<5;x++) {
     map[x+10][10] = 1;
+    map[x+14][9] = 1;
     map[x+3][13] = 1;
+    map[x+7][12] = 1;
     map[x*2][20] = 1;
 }
+map[2][12] = 1;
+
+
 function getImage(name)
 {
     image = new Image();
@@ -68,8 +73,9 @@ function makeTitleBitmaps()
 
 function resetGame()
 {
-    x = 128;
-    y = 128;
+    x = 64;
+    y = 64;
+    yvel = 1;
 }
 
 function init()
@@ -120,22 +126,43 @@ function fall()
 	ground2 = map[x2][gridy]
 	if(ground1 == 1 || ground2 == 1) {
 	    grounded = true;
-	    return;
+	    return false;
 	}
     }
 
     grounded = false;
     y += 1;
+    return true;
 }
 
 function action()
 {
-    fall();
+    for(i=0;i<yvel;i++) {
+	if(!fall()) {
+	    yvel = 0;
+	    return;
+	}
+    }
+    yvel += 1;
+}
+
+function moveX(dx)
+{
+    if(x % TILESIZE == 0) {
+	gx = Math.floor(x/TILESIZE);
+	gy = Math.floor(y/TILESIZE);
+	if(dx < 0) gx -= 1;
+	if(dx > 0) gx += 1;
+	if(map[gx][gy] == 1) {
+	    return false;
+	}
+     }
+    x += dx;
 }
 
 function processKeys() {
-    if(keysDown[37] || keysDown[65]) x -= 4;
-    if(keysDown[39] || keysDown[68]) x += 4;
+    if(keysDown[37] || keysDown[65]) moveX(-4);
+    if(keysDown[39] || keysDown[68]) moveX(4);
     if(x < 0) x = 0;
     if(x > SCREENWIDTH - playerImage.width)  x = SCREENHEIGHT - playerImage.width;
     if(y < 0) y = 0;
