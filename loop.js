@@ -12,6 +12,13 @@ var levels = new Array(16);
 var EVAPSTEP = 4; // Make this bigger to slow evaporation
 var PRESSURE = 16; // Water pressure
 
+// Tile types:
+var EMPTY = 0;
+var BRICK = 1;
+var ICE = 2;
+var LADDER = 3;
+var WATER = 4;
+
 flash = "";
 tileColours = [ "#000000", "#ffffff", "#0000cf" ];
 function Robot(sx,sy)
@@ -47,6 +54,24 @@ function Level()
     this.robots.push(new Robot(32,128))
     this.exitX = 480-TILESIZE;
     this.exitY = 0;
+
+    request = new XMLHttpRequest();
+    request.open("GET", "level1.csv",false); // Blocking
+    request.send(null);
+    console.log(request.responseText);
+
+    // Now parse that...
+    lineArray = request.responseText.split("\n");
+    for(var l = 0;l< 480/TILESIZE; l++) {
+        line = lineArray[l];
+        charArray = line.split(",");
+        if(charArray.length>1) {
+          for(var c=0;c<640/TILESIZE;c++) {
+            this.map[c][l] = parseInt(charArray[c])-1;
+          }
+        }
+    }
+    cold = false;
 }
 
 function Particle(x,y,xvel,yvel)
@@ -55,21 +80,6 @@ function Particle(x,y,xvel,yvel)
     this.xvel = xvel; this.yvel = yvel;
     this.colour = "#7f0000";
 }
-
-function fakeLevel()
-{
-    var x;
-    for(x=0;x<5;x++) {
-	currentLevel.map[x+10][10] = 1;
-	currentLevel.map[x+14][9] = 1;
-	currentLevel.map[x+3][13] = 1;
-	currentLevel.map[x+7][12] = 1;
-	currentLevel.map[x*2][13] = 1;
-	currentLevel.map[x+2][12] = 2;
-    }
-    currentLevel.map[2][12] = 1;
-}
-
 
 function getImage(name)
 {
@@ -132,7 +142,6 @@ function resetGame()
     drips = [];
     frameCounter = 0;
     currentLevel = new Level();
-    fakeLevel();
     waterLevel = 128;
     flash = "";
     particles = [];
@@ -148,6 +157,9 @@ function init()
     robotImage = getImage("robot");
     brickImage = getImage("brick");
     iceImage = getImage("ice");
+    waterImage = getImage("water");
+    ladderImage = getImage("ladder");
+    tileImages = [ 0, brickImage, iceImage, ladderImage, waterImage ];
     springSound = new Audio("audio/boing.wav");
     makeTitleBitmaps();
     return true;
@@ -173,16 +185,16 @@ function draw() {
     ctx.fillStyle = "#ffffff";
 
    for(cx=0;cx<640/TILESIZE;cx++) {
-	for(cy=0;cy<480/TILESIZE;cy++) {
-	    ctx.fillStyle = tileColours[currentLevel.map[cx][cy]];
-	    if(currentLevel.map[cx][cy] == 1) {
-		ctx.drawImage(iceImage,cx*TILESIZE, cy*TILESIZE);
-		} else {
-		    ctx.fillRect(cx*TILESIZE, cy*TILESIZE, TILESIZE, TILESIZE);
-		    }
-	    }
-	}
-
+       for(cy=0;cy<480/TILESIZE;cy++) {
+	   ctx.fillStyle = tileColours[currentLevel.map[cx][cy]];
+	   if(currentLevel.map[cx][cy] > 0) {
+	       ctx.drawImage(tileImages[currentLevel.map[cx][cy]],cx*TILESIZE, cy*TILESIZE);
+	   } else {
+	       ctx.fillRect(cx*TILESIZE, cy*TILESIZE, TILESIZE, TILESIZE);
+	   }
+       }
+   }
+    
     ctx.drawImage(playerImage, px, py);
     ctx.save();
     ctx.translate(px+TILESIZE/2,py+TILESIZE);
@@ -237,13 +249,13 @@ function risefall(dy)
 {
     x1 = Math.floor(px/TILESIZE);
     x2 = Math.floor((px+TILESIZE-1)/TILESIZE);
-    gridy = Math.floor(py/TILESIZE)+2*dy;
+    if(dy>0) { gridy = Math.floor(py/TILESIZE)+2; }
+    else { gridy = Math.floor((py-1)/TILESIZE); }
     if(py % TILESIZE == 0) {
-	
 	ground1 = currentLevel.map[x1][gridy]
 	ground2 = currentLevel.map[x2][gridy]
-	if(ground1 == 1 || ground2 == 1) {
-	    grounded = true;
+	if(solid(ground1) || solid(ground2) || (ground1==LADDER || ground2 == LADDER) && dy>0 && !keysDown[83]) {
+	    if(dy > 0 ) grounded = true;
 	    return false;
 	}
     }
@@ -256,10 +268,10 @@ function risefall(dy)
 function waterLand(gx,gy) {
     if(currentLevel.map[gx][gy] == 0) {
 	currentLevel.water[gx][gy] += 1;
-	if(currentLevel.water[gx][gy] >= 16) {
-	    currentLevel.map[gx][gy] = 1;
+	if(currentLevel.water[gx][gy] >= 16 && currentLevel.cold) {
+	    currentLevel.map[gx][gy] = ICE;
 	}
-	}
+    }
     addDrip(gx,gy,true);
 }
 
@@ -399,12 +411,15 @@ function action()
     // Tile effects
     gx = Math.floor(px/TILESIZE);
     gy = Math.floor(py/TILESIZE)+1;
-    if(currentLevel.map[gx][gy] == 2) {
+    if(currentLevel.map[gx][gy] == WATER) {
 	waterLevel = 128;
     }
 }
 
-
+function solid(b)
+{
+    return b == BRICK || b == ICE;
+}
 
 function moveX(dx)
 {
@@ -415,7 +430,7 @@ function moveX(dx)
 	gy3 = Math.floor((py+TILESIZE*2-1)/TILESIZE);
 	if(dx < 0) gx -= 1;
 	if(dx > 0) gx += 1;
-	if(currentLevel.map[gx][gy] == 1 || currentLevel.map[gx][gy2] == 1 || currentLevel.map[gx][gy3] == 1) {
+	if(solid(currentLevel.map[gx][gy]) || solid(currentLevel.map[gx][gy2]) || solid (currentLevel.map[gx][gy3])) {
 	    return false;
 	}
      }
