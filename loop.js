@@ -9,13 +9,21 @@ var MODE_PLAY  = 1;
 var MODE_WIN   = 2;
 var TILESIZE = 16;
 var levels = new Array(16);
+var EVAPSTEP = 4; // Make this bigger to slow evaporation
 
 currentLevel = levels[0];
 
-map = [[]];
-for(x=0;x<(0,640/16);x++) {
-    map[x] = new Array(480/16);
+map = [];
+water = [[]];
+for(x=0;x<640/TILESIZE;x++) {
+    map[x] = new Array(480/TILESIZE);
+    water[x] = new Array(480/TILESIZE);
+    for(y=0;y<480/TILESIZE;y++) {
+	map[x][y] = 0;
+	water[x][y] = 0;
+    }
 }
+
 map[1][1] = 1;
 for(x=0;x<5;x++) {
     map[x+10][10] = 1;
@@ -80,6 +88,7 @@ function resetGame()
     aimAngle = 0;
     aimDirection = 1;
     waterParticles = [];
+    frameCounter = 0;
 }
 
 function init()
@@ -107,6 +116,10 @@ function draw() {
 	for(cy=0;cy<480/TILESIZE;cy++) {
 	    if(map[cx][cy] == 1) {
 		ctx.fillRect(cx*TILESIZE, cy*TILESIZE, TILESIZE, TILESIZE);
+		}
+	    if(water[cx][cy] > 0) {
+		w = water[cx][cy];
+		ctx.fillRect(cx*TILESIZE, cy*TILESIZE+TILESIZE-w, TILESIZE, w);
 		}
 	    }
 	}
@@ -144,6 +157,24 @@ function risefall(dy)
     return true;
 }
 
+function waterLand(gx,gy) {
+    water[gx][gy] += 1;
+    if(water[gx][gy] >= 16) {
+	map[gx][gy] = 1;
+    }
+}
+
+function evaporate(step)
+{
+    for(gx = step; gx < 640/TILESIZE; gx += EVAPSTEP) {
+	for(gy = 0; gy < 480/TILESIZE; gy++) {
+	    if(water[gx][gy] > 0) {
+		water[gx][gy] -= 1;
+	    }
+	}
+    }
+}
+
 function action()
 {
     if(yvel < 0) {
@@ -166,13 +197,25 @@ function action()
     // Water
     newWater = new Array();
     for(i=0;i<waterParticles.length;i++) {
+	oldx = waterParticles[i][0];
+	oldy = waterParticles[i][1];
 	waterParticles[i][0] += waterParticles[i][2];
 	waterParticles[i][1] += waterParticles[i][3];
 	waterParticles[i][3] += 1;
-	if(waterParticles[i][1] < 480) newWater.push(waterParticles[i]);
+
+	if(waterParticles[i][0] < 0 || waterParticles[i][0] >= 640 ||
+	   waterParticles[i][1] < 0 || waterParticles[i][1] >= 480)
+	    continue;
+	gx = Math.floor(waterParticles[i][0] / TILESIZE);
+	gy = Math.floor(waterParticles[i][1] / TILESIZE);
+	if(map[gx][gy] == 1) { 
+	    waterLand(Math.floor(oldx/TILESIZE), Math.floor(oldy/TILESIZE));
+	} else {
+	    newWater.push(waterParticles[i]);
+	}
     }
     waterParticles = newWater;
-    
+    evaporate(frameCounter % EVAPSTEP);
 }
 
 function moveX(dx)
@@ -213,6 +256,7 @@ function drawRepeat() {
     if(mode != MODE_TITLE) {
 	processKeys();
 	action();
+	frameCounter += 1;
     }
     draw();
     if(!stopRunloop) setTimeout('drawRepeat()',20);
