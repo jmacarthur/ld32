@@ -10,11 +10,26 @@ var MODE_WIN   = 2;
 var TILESIZE = 16;
 var levels = new Array(16);
 var EVAPSTEP = 4; // Make this bigger to slow evaporation
+var PRESSURE = 16; // Water pressure
+function Robot(sx,sy)
+{
+    this.x = sx;
+    this.y = sy;
+    this.maxx = 640;
+    this.maxy = 480;
+    this.minx = 0;
+    this.miny = 0;
+    this.dx = 4;
+    this.dy = 0;
+    this.xsize = 16;
+    this.ysize = 16;
+    this.colour = "#ff0000";
+}
 
 function Level()
 {
-    this.map = []
-    this.water = []
+    this.map = [];
+    this.water = [];
     for(x=0;x<640/TILESIZE;x++) {
 	this.map[x] = new Array(480/TILESIZE);
 	this.water[x] = new Array(480/TILESIZE);
@@ -23,6 +38,8 @@ function Level()
 	    this.water[x][y] = 0;
 	}
     }
+    this.robots = [];
+    this.robots.push(new Robot(32,32))
 }
 
 function fakeLevel()
@@ -153,6 +170,13 @@ function draw() {
 	ctx.fillRect(drips[i][0], drips[i][1], 4,4);
     }
 
+    for(i=0;i<currentLevel.robots.length;i++) {
+	r = currentLevel.robots[i];
+	ctx.fillStyle = r.colour;
+	ctx.fillRect(r.x, r.y, r.xsize,r.ysize);
+    }
+
+
     if(mode == MODE_WIN) {
 	ctx.drawImage(winBitmap, 0, 0);
     }
@@ -254,7 +278,16 @@ function action()
 	}
     }
     evaporate(frameCounter % EVAPSTEP);
+    for(i=0;i<currentLevel.robots.length;i++) {
+	r = currentLevel.robots[i];
+	r.x += r.dx;
+	r.y += r.dy;
+	if(r.x >= r.maxx || r.x <= r.minx) r.dx = -r.dx;
+	if(r.y >= r.maxy || r.y <= r.miny) r.dy = -r.dy;
+    }
 }
+
+
 
 function moveX(dx)
 {
@@ -275,7 +308,7 @@ function moveX(dx)
 function addWater()
 {
     if(waterLevel > 0) {
-	waterParticles.push([x+TILESIZE/2, y+TILESIZE/2, aimDirection * Math.cos(aimAngle) * 8, Math.sin(aimAngle) * 8]);
+	waterParticles.push([x+TILESIZE/2, y+TILESIZE/2, aimDirection * Math.cos(aimAngle) * PRESSURE, Math.sin(aimAngle) * PRESSURE]);
 	waterLevel -= 1;
     }
 }
