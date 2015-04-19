@@ -175,7 +175,7 @@ function evaporate(step)
     }
 }
 
-function action()
+function vertical()
 {
     if(yvel < 0) {
 	for(i=0;i<-yvel;i++) {
@@ -194,6 +194,11 @@ function action()
     }
     yvel += 1;
 
+}
+
+function action()
+{
+    vertical();
     // Water
     newWater = new Array();
     for(i=0;i<waterParticles.length;i++) {
