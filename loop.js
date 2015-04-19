@@ -76,6 +76,7 @@ function resetGame()
     x = 64;
     y = 64;
     yvel = 1;
+    grounded = false;
 }
 
 function init()
@@ -115,11 +116,11 @@ function draw() {
 }
 
 
-function fall()
+function risefall(dy)
 {
     x1 = Math.floor(x/TILESIZE);
     x2 = Math.floor((x+TILESIZE-1)/TILESIZE);
-    gridy = Math.floor(y/TILESIZE)+1;
+    gridy = Math.floor(y/TILESIZE)+dy;
     if(y % TILESIZE == 0) {
 	
 	ground1 = map[x1][gridy]
@@ -131,16 +132,25 @@ function fall()
     }
 
     grounded = false;
-    y += 1;
+    y += dy;
     return true;
 }
 
 function action()
 {
-    for(i=0;i<yvel;i++) {
-	if(!fall()) {
-	    yvel = 0;
-	    return;
+    if(yvel < 0) {
+	for(i=0;i<-yvel;i++) {
+	    if(!risefall(-1)) {
+		yvel = 0;
+		return;
+	    }
+	}
+    } else {
+	for(i=0;i<yvel;i++) {
+	    if(!risefall(1)) {
+		yvel = 0;
+		return;
+	    }
 	}
     }
     yvel += 1;
@@ -151,9 +161,10 @@ function moveX(dx)
     if(x % TILESIZE == 0) {
 	gx = Math.floor(x/TILESIZE);
 	gy = Math.floor(y/TILESIZE);
+	gy2 = Math.floor((y+TILESIZE-1)/TILESIZE);
 	if(dx < 0) gx -= 1;
 	if(dx > 0) gx += 1;
-	if(map[gx][gy] == 1) {
+	if(map[gx][gy] == 1 || map[gx][gy2] == 1) {
 	    return false;
 	}
      }
@@ -163,6 +174,7 @@ function moveX(dx)
 function processKeys() {
     if(keysDown[37] || keysDown[65]) moveX(-4);
     if(keysDown[39] || keysDown[68]) moveX(4);
+    if(keysDown[32] & grounded) { yvel = -4; grounded = false; }
     if(x < 0) x = 0;
     if(x > SCREENWIDTH - playerImage.width)  x = SCREENHEIGHT - playerImage.width;
     if(y < 0) y = 0;
