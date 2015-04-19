@@ -37,7 +37,7 @@ function Robot(sx,sy)
     this.health = 32;
 }
 
-function Level()
+function Level(filename)
 {
     this.map = [];
     this.water = [];
@@ -52,18 +52,21 @@ function Level()
     }
     this.robots = [];
     this.robots.push(new Robot(32,128))
-    this.exitX = 480-TILESIZE;
-    this.exitY = 0;
 
     request = new XMLHttpRequest();
-    request.open("GET", "level1.csv",false); // Blocking
+    request.open("GET", filename+".csv",false); // Blocking
     request.send(null);
     console.log(request.responseText);
-
+    this.cold = false;
     // Now parse that...
     lineArray = request.responseText.split("\n");
     for(var l = 0;l< 480/TILESIZE; l++) {
         line = lineArray[l];
+	if(line == ':COLD') {
+	    console.log("This room is cold");
+	    this.cold = true;
+	    continue;
+	}
         charArray = line.split(",");
         if(charArray.length>1) {
           for(var c=0;c<640/TILESIZE;c++) {
@@ -71,7 +74,8 @@ function Level()
           }
         }
     }
-    cold = false;
+
+    if(filename == "level3") this.cold = true; // hack.
 }
 
 function Particle(x,y,xvel,yvel)
@@ -133,20 +137,31 @@ function resetPlayer()
     grounded = false;
     aimAngle = 0;
     aimDirection = 1;
+    waterLevel = 128;
 }
 
 function resetGame()
 {
+    levelNo = 1;
     resetPlayer();
     waterParticles = [];
     drips = [];
     frameCounter = 0;
-    currentLevel = new Level();
+    currentLevel = new Level("level"+levelNo);
     waterLevel = 128;
     flash = "";
     particles = [];
 }
 
+function changeLevel(filename)
+{
+    waterParticles = [];
+    drips = [];
+    frameCounter = 0;
+    currentLevel = new Level(filename);
+    flash = "";
+    particles = [];
+}
 
 function init()
 {
@@ -189,8 +204,6 @@ function draw() {
 	   ctx.fillStyle = tileColours[currentLevel.map[cx][cy]];
 	   if(currentLevel.map[cx][cy] > 0) {
 	       ctx.drawImage(tileImages[currentLevel.map[cx][cy]],cx*TILESIZE, cy*TILESIZE);
-	   } else {
-	       ctx.fillRect(cx*TILESIZE, cy*TILESIZE, TILESIZE, TILESIZE);
 	   }
        }
    }
@@ -234,9 +247,6 @@ function draw() {
 	ctx.fillStyle = p.colour;
 	ctx.fillRect(p.x, p.y, 4, 4);
     }
-
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(currentLevel.exitX, currentLevel.exitY, 64,64);
 
     if(mode == MODE_WIN) {
 	ctx.drawImage(winBitmap, 0, 0);
@@ -318,12 +328,12 @@ function vertical()
 
 }
 
-function hitRobot(wx, wy)
+function hitRobot(wx, wy, w, h)
 {
     var i;
     for(i=0;i<currentLevel.robots.length;i++) {
 	r = currentLevel.robots[i];
-	if(wx >= r.x && wx < (r.x+r.xsize) && wy >= r.y && wy < (r.y+r.ysize)) {
+	if(wx+w >= r.x && wx < (r.x+r.xsize) && wy+h >= r.y && wy < (r.y+r.ysize)) {
 	    return i;
 	}
     }
@@ -347,10 +357,10 @@ function action()
 	    continue;
 	gx = Math.floor(waterParticles[i][0] / TILESIZE);
 	gy = Math.floor(waterParticles[i][1] / TILESIZE);
-	if(currentLevel.map[gx][gy] == 1) { 
+	if(solid(currentLevel.map[gx][gy])) { 
 	    waterLand(Math.floor(oldx/TILESIZE), Math.floor(oldy/TILESIZE));
 	} else {
-	    j = hitRobot(waterParticles[i][0], waterParticles[i][1]);
+	    j = hitRobot(waterParticles[i][0], waterParticles[i][1],1,1);
 	    if(j>-1) {
 		addDrip(waterParticles[i][0]/TILESIZE, waterParticles[i][1]/TILESIZE, false);
 		currentLevel.robots[j].health -= 1;
@@ -382,11 +392,11 @@ function action()
 	    newRobots.push(r);
 	}
 	else {
-	    for(j=0;j<10;j++) {
-		particles.push(new Particle(r.x + r.xsize/2, r.y+r.ysize/2, 8*Math.random()-4, -Math.random()*4));
+	    for(j=0;j<20;j++) {
+		particles.push(new Particle(r.x + Math.random()*r.xsize, r.y+Math.random()*r.ysize, 8*Math.random()-4, -Math.random()*16));
 	    }
 	}
-	if(hitRobot(px,py) > -1) {
+	if(hitRobot(px,py,16,32) > -1) {
 	    flash = "#ff0000";
 	    resetPlayer();
 	}
@@ -404,8 +414,17 @@ function action()
 	}
     }
     particles = newParticles;
-    if(px >= currentLevel.exitX && px < currentLevel.exitX+64 && py >= currentLevel.exitY && py < currentLevel.exitY+64) {
-	resetGame();
+
+    if(px > 640-TILESIZE-TILESIZE/2) {
+	px = TILESIZE;
+	levelNo += 1;
+	changeLevel("level"+levelNo);
+    }
+
+    if(px < TILESIZE/2) {
+	px = 640-TILESIZE*2;
+	levelNo -= 1;
+	changeLevel("level"+levelNo);
     }
 
     // Tile effects
