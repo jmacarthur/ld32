@@ -146,6 +146,8 @@ function init()
     gunImage = getImage("watergun");
     bottleImage = getImage("bottle");
     robotImage = getImage("robot");
+    brickImage = getImage("brick");
+    iceImage = getImage("ice");
     springSound = new Audio("audio/boing.wav");
     makeTitleBitmaps();
     return true;
@@ -173,9 +175,11 @@ function draw() {
    for(cx=0;cx<640/TILESIZE;cx++) {
 	for(cy=0;cy<480/TILESIZE;cy++) {
 	    ctx.fillStyle = tileColours[currentLevel.map[cx][cy]];
-	    if(currentLevel.map[cx][cy] > 0) {
-		ctx.fillRect(cx*TILESIZE, cy*TILESIZE, TILESIZE, TILESIZE);
-		}
+	    if(currentLevel.map[cx][cy] == 1) {
+		ctx.drawImage(iceImage,cx*TILESIZE, cy*TILESIZE);
+		} else {
+		    ctx.fillRect(cx*TILESIZE, cy*TILESIZE, TILESIZE, TILESIZE);
+		    }
 	    }
 	}
 
@@ -183,7 +187,7 @@ function draw() {
     ctx.save();
     ctx.translate(px+TILESIZE/2,py+TILESIZE);
     ctx.rotate(aimAngle*aimDirection);
-    ctx.scale(0.5*aimDirection,0.5);
+    ctx.scale(0.7*aimDirection,0.7);
     ctx.drawImage(gunImage, -32,-10);
     ctx.restore();
 
@@ -255,12 +259,17 @@ function waterLand(gx,gy) {
 	    currentLevel.map[gx][gy] = 1;
 	}
 	}
-    addDrip(gx,gy);
+    addDrip(gx,gy,true);
 }
 
-function addDrip(gx, gy) {
+function addDrip(gx, gy, base) {
     if(Math.random() < 0.5) {
-	drips.push([gx*TILESIZE+Math.random()*TILESIZE, gy*TILESIZE+Math.random()*TILESIZE, 0, -8]);
+	if(base) {
+	    drips.push([gx*TILESIZE+Math.random()*TILESIZE, gy*TILESIZE+TILESIZE, 0, -8]);
+	    }
+	else {
+	    drips.push([gx*TILESIZE+Math.random()*TILESIZE, gy*TILESIZE+Math.random()*TILESIZE, 0, -8]);
+	    }
     }
 }
 
@@ -330,7 +339,7 @@ function action()
 	} else {
 	    j = hitRobot(waterParticles[i][0], waterParticles[i][1]);
 	    if(j>-1) {
-		addDrip(waterParticles[i][0]/TILESIZE, waterParticles[i][1]/TILESIZE);
+		addDrip(waterParticles[i][0]/TILESIZE, waterParticles[i][1]/TILESIZE, false);
 		currentLevel.robots[j].health -= 1;
 	    }
 	    else {
@@ -416,7 +425,8 @@ function moveX(dx)
 function addWater()
 {
     if(waterLevel > 0) {
-	waterParticles.push([px+TILESIZE/2, py+TILESIZE, aimDirection * Math.cos(aimAngle) * PRESSURE, Math.sin(aimAngle) * PRESSURE]);
+	rangle = aimAngle + 0.1*(-0.5 + Math.random());
+	waterParticles.push([px+TILESIZE/2, py+TILESIZE, aimDirection * Math.cos(rangle) * PRESSURE, Math.sin(rangle) * PRESSURE]);
 	waterLevel -= 1;
     }
 }
