@@ -11,28 +11,31 @@ var TILESIZE = 16;
 var levels = new Array(16);
 var EVAPSTEP = 4; // Make this bigger to slow evaporation
 
-currentLevel = levels[0];
-
-map = [];
-water = [[]];
-for(x=0;x<640/TILESIZE;x++) {
-    map[x] = new Array(480/TILESIZE);
-    water[x] = new Array(480/TILESIZE);
-    for(y=0;y<480/TILESIZE;y++) {
-	map[x][y] = 0;
-	water[x][y] = 0;
+function Level()
+{
+    this.map = []
+    this.water = []
+    for(x=0;x<640/TILESIZE;x++) {
+	this.map[x] = new Array(480/TILESIZE);
+	this.water[x] = new Array(480/TILESIZE);
+	for(y=0;y<480/TILESIZE;y++) {
+	    this.map[x][y] = 0;
+	    this.water[x][y] = 0;
+	}
     }
 }
 
-map[1][1] = 1;
-for(x=0;x<5;x++) {
-    map[x+10][10] = 1;
-    map[x+14][9] = 1;
-    map[x+3][13] = 1;
-    map[x+7][12] = 1;
-    map[x*2][20] = 1;
+function fakeLevel()
+{
+    for(x=0;x<5;x++) {
+	currentLevel.map[x+10][10] = 1;
+	currentLevel.map[x+14][9] = 1;
+	currentLevel.map[x+3][13] = 1;
+	currentLevel.map[x+7][12] = 1;
+	currentLevel.map[x*2][20] = 1;
+    }
+    currentLevel.map[2][12] = 1;
 }
-map[2][12] = 1;
 
 
 function getImage(name)
@@ -89,6 +92,8 @@ function resetGame()
     aimDirection = 1;
     waterParticles = [];
     frameCounter = 0;
+    currentLevel = new Level();
+    fakeLevel();
 }
 
 function init()
@@ -114,11 +119,11 @@ function draw() {
 
    for(cx=0;cx<640/TILESIZE;cx++) {
 	for(cy=0;cy<480/TILESIZE;cy++) {
-	    if(map[cx][cy] == 1) {
+	    if(currentLevel.map[cx][cy] == 1) {
 		ctx.fillRect(cx*TILESIZE, cy*TILESIZE, TILESIZE, TILESIZE);
 		}
-	    if(water[cx][cy] > 0) {
-		w = water[cx][cy];
+	    if(currentLevel.water[cx][cy] > 0) {
+		w = currentLevel.water[cx][cy];
 		ctx.fillRect(cx*TILESIZE, cy*TILESIZE+TILESIZE-w, TILESIZE, w);
 		}
 	    }
@@ -144,8 +149,8 @@ function risefall(dy)
     gridy = Math.floor(y/TILESIZE)+dy;
     if(y % TILESIZE == 0) {
 	
-	ground1 = map[x1][gridy]
-	ground2 = map[x2][gridy]
+	ground1 = currentLevel.map[x1][gridy]
+	ground2 = currentLevel.map[x2][gridy]
 	if(ground1 == 1 || ground2 == 1) {
 	    grounded = true;
 	    return false;
@@ -158,9 +163,9 @@ function risefall(dy)
 }
 
 function waterLand(gx,gy) {
-    water[gx][gy] += 1;
-    if(water[gx][gy] >= 16) {
-	map[gx][gy] = 1;
+    currentLevel.water[gx][gy] += 1;
+    if(currentLevel.water[gx][gy] >= 16) {
+	currentLevel.map[gx][gy] = 1;
     }
 }
 
@@ -168,8 +173,8 @@ function evaporate(step)
 {
     for(gx = step; gx < 640/TILESIZE; gx += EVAPSTEP) {
 	for(gy = 0; gy < 480/TILESIZE; gy++) {
-	    if(water[gx][gy] > 0) {
-		water[gx][gy] -= 1;
+	    if(currentLevel.water[gx][gy] > 0) {
+		currentLevel.water[gx][gy] -= 1;
 	    }
 	}
     }
@@ -213,7 +218,7 @@ function action()
 	    continue;
 	gx = Math.floor(waterParticles[i][0] / TILESIZE);
 	gy = Math.floor(waterParticles[i][1] / TILESIZE);
-	if(map[gx][gy] == 1) { 
+	if(currentLevel.map[gx][gy] == 1) { 
 	    waterLand(Math.floor(oldx/TILESIZE), Math.floor(oldy/TILESIZE));
 	} else {
 	    newWater.push(waterParticles[i]);
@@ -231,7 +236,7 @@ function moveX(dx)
 	gy2 = Math.floor((y+TILESIZE-1)/TILESIZE);
 	if(dx < 0) gx -= 1;
 	if(dx > 0) gx += 1;
-	if(map[gx][gy] == 1 || map[gx][gy2] == 1) {
+	if(currentLevel.map[gx][gy] == 1 || currentLevel.map[gx][gy2] == 1) {
 	    return false;
 	}
      }
