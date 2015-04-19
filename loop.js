@@ -91,22 +91,25 @@ function resetGame()
     aimAngle = 0;
     aimDirection = 1;
     waterParticles = [];
+    drips = [];
     frameCounter = 0;
     currentLevel = new Level();
     fakeLevel();
+    waterLevel = 32;
 }
 
 function init()
 {
     mode = MODE_TITLE;
     playerImage = getImage("person");
+    bottleImage = getImage("bottle");
     springSound = new Audio("audio/boing.wav");
     makeTitleBitmaps();
     return true;
 }
 
 function draw() {
-    ctx.fillStyle = "#0000ff";
+    ctx.fillStyle = "#00007f";
     ctx.fillRect(0, 0, SCREENWIDTH, SCREENHEIGHT);
 
     if(mode == MODE_TITLE) {
@@ -130,10 +133,20 @@ function draw() {
 	}
 
     ctx.drawImage(playerImage, x, y);
-    ctx.fillRect(x+TILESIZE/2 + aimDirection * Math.cos(aimAngle)*32, y+TILESIZE/2 + Math.sin(aimAngle)*32, 4,4);
     ctx.fillStyle = "#7f7fff";
+
+    if(waterLevel > 4) {
+	ctx.fillRect(640-32-8+4,8,Math.min(waterLevel-4, 24), 16);
+    }
+    ctx.fillRect(640-32-8,12, waterLevel, 8);
+
+    ctx.drawImage(bottleImage, 640-32-8, 8);
+    ctx.fillRect(x+TILESIZE/2 + aimDirection * Math.cos(aimAngle)*32, y+TILESIZE/2 + Math.sin(aimAngle)*32, 4,4);
     for(i=0;i<waterParticles.length;i++) {
 	ctx.fillRect(waterParticles[i][0], waterParticles[i][1], 4,4);
+    }
+    for(i=0;i<drips.length;i++) {
+	ctx.fillRect(drips[i][0], drips[i][1], 4,4);
     }
 
     if(mode == MODE_WIN) {
@@ -167,6 +180,7 @@ function waterLand(gx,gy) {
     if(currentLevel.water[gx][gy] >= 16) {
 	currentLevel.map[gx][gy] = 1;
     }
+    drips.push([gx*TILESIZE+TILESIZE/2, gy*TILESIZE+TILESIZE/2, 0, -8]);
 }
 
 function evaporate(step)
@@ -225,6 +239,14 @@ function action()
 	}
     }
     waterParticles = newWater;
+    newDrip = new Array();
+    for(i=0;i<drips.length;i++) {
+	if(drips[i][3] > 0) drips[i][1] += drips[i][3];
+	drips[i][3] += 1;	
+	if(drips[i][1] < 480) {
+	    newDrip.push(drips[i]);
+	}
+    }
     evaporate(frameCounter % EVAPSTEP);
 }
 
@@ -246,7 +268,10 @@ function moveX(dx)
 
 function addWater()
 {
-    waterParticles.push([x+TILESIZE/2, y+TILESIZE/2, aimDirection * Math.cos(aimAngle) * 8, Math.sin(aimAngle) * 8]);
+    if(waterLevel > 0) {
+	waterParticles.push([x+TILESIZE/2, y+TILESIZE/2, aimDirection * Math.cos(aimAngle) * 8, Math.sin(aimAngle) * 8]);
+	waterLevel -= 1;
+    }
 }
 
 function processKeys() {
