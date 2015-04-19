@@ -18,19 +18,19 @@ var BRICK = 1;
 var ICE = 2;
 var LADDER = 3;
 var WATER = 4;
-
+var MACGUFFIN = 5;
 flash = "";
 tileColours = [ "#000000", "#ffffff", "#0000cf" ];
-function Robot(sx,sy)
+function Robot(sx,sy, minx, miny, maxx, maxy, dx, dy)
 {
     this.x = sx;
     this.y = sy;
-    this.maxx = 640-TILESIZE;
-    this.maxy = 480-TILESIZE;
-    this.minx = 0;
-    this.miny = 0;
-    this.dx = 4;
-    this.dy = 0;
+    this.maxx = maxx;
+    this.maxy = maxy;
+    this.minx = minx;
+    this.miny = miny;
+    this.dx = dx;
+    this.dy = dy;
     this.xsize = 32;
     this.ysize = 32;
     this.colour = "#ff0000";
@@ -51,7 +51,13 @@ function Level(filename)
 	}
     }
     this.robots = [];
-    this.robots.push(new Robot(32,128))
+    if(filename == "level1") {
+	this.robots.push(new Robot(32,128, TILESIZE, 128, 640-TILESIZE, 128, 4, 0))
+	}
+    if(filename == "level3") {
+	this.robots.push(new Robot(6*TILESIZE, 5*TILESIZE, 6*TILESIZE, 5*TILESIZE, 6*TILESIZE, 6*TILESIZE, 0, 4))
+	this.robots.push(new Robot(8*TILESIZE, 6*TILESIZE, 8*TILESIZE, 5*TILESIZE, 8*TILESIZE, 6*TILESIZE, 0, -4))
+    }
 
     request = new XMLHttpRequest();
     request.open("GET", filename+".csv",false); // Blocking
@@ -75,7 +81,16 @@ function Level(filename)
         }
     }
 
-    if(filename == "level3") this.cold = true; // hack.
+
+    if(filename == "level1") { 
+			       this.title = "Reception";
+			       }
+    else if(filename == "level2") { this.cold = true; // hack.
+			       this.title = "Freezer entrance";
+			       }
+    else if(filename == "level3") { this.cold = true; // hack.
+			       this.title = "Cold store";
+			       }
 }
 
 function Particle(x,y,xvel,yvel)
@@ -115,7 +130,8 @@ function drawString(context, string, x, y) {
 
 function paintTitleBitmaps()
 {
-    drawString(titlectx, 'This is a demo of the JavaScript/HTML5 game loop',32,32);
+    drawString(titlectx, 'HYDROELECTRIC v0. 1',32,32);
+    drawString(titlectx, 'PRESS SPACE',32,480 - 32 - 16);
     drawString(winctx, 'Your game should always have an ending',32,32);
 }
 
@@ -151,7 +167,6 @@ function resetGame()
     resetPlayer();
     waterParticles = [];
     drips = [];
-    frameCounter = 0;
     currentLevel = new Level("level"+levelNo);
     waterLevel = 128;
     flash = "";
@@ -179,9 +194,15 @@ function init()
     iceImage = getImage("ice");
     waterImage = getImage("water");
     ladderImage = getImage("ladder");
-    tileImages = [ 0, brickImage, iceImage, ladderImage, waterImage ];
-    springSound = new Audio("audio/boing.wav");
+    macguffinImage = getImage("macguffin");
+    tileImages = [ 0, brickImage, iceImage, ladderImage, waterImage, macguffinImage ];
+    jumpSound = new Audio("audio/jump.wav");
+    explodeSound = new Audio("audio/explode4.wav");
+    waterFillSound = new Audio("audio/water.wav");
+    waterOutSound = new Audio("audio/waterout.wav");
+    killedSound = new Audio("audio/killed.wav");
     makeTitleBitmaps();
+    frameCounter = 0;
     return true;
 }
 
@@ -198,6 +219,13 @@ function draw() {
 
     if(mode == MODE_TITLE) {
 	ctx.drawImage(titleBitmap, 0, 0);
+	ctx.save();
+	ctx.translate(320,256);
+	ctx.rotate(Math.sin(frameCounter/50)/4);
+	ctx.scale(5,5);
+	ctx.translate(0,0);
+	ctx.drawImage(gunImage, -32,-16);
+	ctx.restore();
 	return;
     }
 
@@ -212,6 +240,12 @@ function draw() {
 	   }
        }
    }
+
+    ctx.fillStyle = "#000000";
+    titleWidth = currentLevel.title.length*12;
+    ctx.fillRect(320-titleWidth/2, 480-16-12, titleWidth+20, 16+8);
+    drawString(ctx, currentLevel.title, 320-titleWidth/2+8, 480-24);
+
     
     ctx.drawImage(playerImage, px, py);
     ctx.save();
@@ -400,9 +434,12 @@ function action()
 	    for(j=0;j<20;j++) {
 		particles.push(new Particle(r.x + Math.random()*r.xsize, r.y+Math.random()*r.ysize, 8*Math.random()-4, -Math.random()*16));
 	    }
+	    explodeSound.play();
 	}
 	if(hitRobot(px,py,16,32) > -1) {
 	    flash = "#ff0000";
+	    killedSound.play();
+	    
 	    resetPlayer();
 	}
     }
@@ -436,6 +473,9 @@ function action()
     gx = Math.floor(px/TILESIZE);
     gy = Math.floor(py/TILESIZE)+1;
     if(currentLevel.map[gx][gy] == WATER) {
+	if(waterLevel < 128) {
+	    waterFillSound.play();
+	    }
 	waterLevel = 128;
     }
 }
@@ -468,13 +508,16 @@ function addWater()
 	rangle = aimAngle + 0.1*(-0.5 + Math.random());
 	waterParticles.push([px+TILESIZE/2, py+TILESIZE-8, aimDirection * Math.cos(rangle) * PRESSURE, Math.sin(rangle) * PRESSURE]);
 	waterLevel -= 1;
+	if(waterLevel == 0) {
+	    waterOutSound.play();
+	    }
     }
 }
 
 function processKeys() {
     if(keysDown[37] || keysDown[65]) moveX(-4);
     if(keysDown[39] || keysDown[68]) moveX(4);
-    if(keysDown[32] & grounded) { yvel = -10; grounded = false; }
+    if(keysDown[32] & grounded) { yvel = -10; grounded = false; jumpSound.play(); }
     if(keysDown[40] && aimAngle < Math.PI / 2) aimAngle += 0.1;
     if(keysDown[38] && aimAngle > -Math.PI / 2) aimAngle -= 0.1;
     if(keysDown[87]) addWater();
@@ -485,9 +528,9 @@ function drawRepeat() {
     if(mode != MODE_TITLE) {
 	processKeys();
 	action();
-	frameCounter += 1;
     }
     draw();
+    frameCounter += 1;
     if(!stopRunloop) setTimeout('drawRepeat()',20);
 }
 
