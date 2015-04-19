@@ -19,6 +19,7 @@ var ICE = 2;
 var LADDER = 3;
 var WATER = 4;
 var MACGUFFIN = 5;
+
 flash = "";
 tileColours = [ "#000000", "#ffffff", "#0000cf" ];
 function Robot(sx,sy, minx, miny, maxx, maxy, dx, dy)
@@ -60,35 +61,41 @@ function Level(filename)
     }
 
     request = new XMLHttpRequest();
-    request.open("GET", filename+".csv",false); // Blocking
+    request.open("GET", filename+".txt",false); // Blocking!
     request.send(null);
     console.log(request.responseText);
     this.cold = false;
     // Now parse that...
     lineArray = request.responseText.split("\n");
-    for(var l = 0;l< 480/TILESIZE; l++) {
+    row = 0;
+    for(var l = 0;l<lineArray.length; l++) {
         line = lineArray[l];
-	if(line == ':COLD') {
-	    console.log("This room is cold");
-	    this.cold = true;
+	if(line.substr(0,1) == ':') {
+	    fields = line.split(':');
+	    name = fields[1];
+	    value = fields[2];
+	    console.log("Detected attribute in level: "+name+" = "+value);
+	    if(name == 'temp' && value == 'cold') this.cold = true;
 	    continue;
+	} else if (row < 480/TILESIZE) {
+            charArray = line.split(",");
+            if(charArray.length>1) {
+		for(var c=0;c<640/TILESIZE;c++) {
+		    this.map[c][row] = parseInt(charArray[c])-1;
+		}
+            }
+	    row += 1;
 	}
-        charArray = line.split(",");
-        if(charArray.length>1) {
-          for(var c=0;c<640/TILESIZE;c++) {
-            this.map[c][l] = parseInt(charArray[c])-1;
-          }
-        }
-    }
+   }
 
 
-    if(filename == "level1") { 
+    if(filename == "level1") {
 			       this.title = "Reception";
 			       }
-    else if(filename == "level2") { this.cold = true; // hack.
+    else if(filename == "level2") {
 			       this.title = "Freezer entrance";
 			       }
-    else if(filename == "level3") { this.cold = true; // hack.
+    else if(filename == "level3") {
 			       this.title = "Cold store";
 			       }
 }
@@ -477,6 +484,9 @@ function action()
 	    waterFillSound.play();
 	    }
 	waterLevel = 128;
+    }
+    else if(currentLevel.map[gx][gy] == MACGUFFIN) {
+	mode = MODE_WIN;
     }
 }
 
