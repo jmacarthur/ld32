@@ -77,6 +77,9 @@ function resetGame()
     y = 64;
     yvel = 1;
     grounded = false;
+    aimAngle = 0;
+    aimDirection = 1;
+    waterParticles = [];
 }
 
 function init()
@@ -109,6 +112,11 @@ function draw() {
 	}
 
     ctx.drawImage(playerImage, x, y);
+    ctx.fillRect(x+TILESIZE/2 + aimDirection * Math.cos(aimAngle)*32, y+TILESIZE/2 + Math.sin(aimAngle)*32, 4,4);
+    ctx.fillStyle = "#7f7fff";
+    for(i=0;i<waterParticles.length;i++) {
+	ctx.fillRect(waterParticles[i][0], waterParticles[i][1], 4,4);
+    }
 
     if(mode == MODE_WIN) {
 	ctx.drawImage(winBitmap, 0, 0);
@@ -154,6 +162,17 @@ function action()
 	}
     }
     yvel += 1;
+
+    // Water
+    newWater = new Array();
+    for(i=0;i<waterParticles.length;i++) {
+	waterParticles[i][0] += waterParticles[i][2];
+	waterParticles[i][1] += waterParticles[i][3];
+	waterParticles[i][3] += 1;
+	if(waterParticles[i][1] < 480) newWater.push(waterParticles[i]);
+    }
+    waterParticles = newWater;
+    
 }
 
 function moveX(dx)
@@ -169,12 +188,21 @@ function moveX(dx)
 	}
      }
     x += dx;
+    aimDirection = Math.sign(dx);
+}
+
+function addWater()
+{
+    waterParticles.push([x+TILESIZE/2, y+TILESIZE/2, aimDirection * Math.cos(aimAngle) * 8, Math.sin(aimAngle) * 8]);
 }
 
 function processKeys() {
     if(keysDown[37] || keysDown[65]) moveX(-4);
     if(keysDown[39] || keysDown[68]) moveX(4);
-    if(keysDown[32] & grounded) { yvel = -4; grounded = false; }
+    if(keysDown[32] & grounded) { yvel = -6; grounded = false; }
+    if(keysDown[40] && aimAngle < Math.PI / 2) aimAngle += 0.1;
+    if(keysDown[38] && aimAngle > -Math.PI / 2) aimAngle -= 0.1;
+    if(keysDown[87]) addWater();
     if(x < 0) x = 0;
     if(x > SCREENWIDTH - playerImage.width)  x = SCREENHEIGHT - playerImage.width;
     if(y < 0) y = 0;
